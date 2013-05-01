@@ -5,6 +5,8 @@
 import sys
 import argparse
 import re
+import codecs
+import cgi
 
 # external dependencies
 import markdown
@@ -15,15 +17,15 @@ if __name__ == '__main__':
         and puts it into a template")
     parser.add_argument('markdown', metavar="markdown.md", help='markdown file')
     parser.add_argument('template', metavar="template.tpl", help='template \
-            file (jinja2)')
+        file (jinja2)')
     parser.add_argument('-o', '--output', metavar='output.html', help='location of \
-            HTML output')
+        HTML output')
     parser.add_argument('-t', '--title', metavar='My Page Title',
                         help='Overwrite title autodetection')
     args = parser.parse_args()
 
     try:
-        mdfile = open(args.markdown)
+        mdfile = codecs.open(args.markdown, 'r', 'UTF-8')
         md = mdfile.read()
     except Exception:
         print("Could not read markdown file. quitting")
@@ -35,8 +37,9 @@ if __name__ == '__main__':
     except Exception:
         print("Could not read template file. quitting")
         sys.exit(1)
-
-    html = markdown.markdown(md)
+    
+    md = cgi.escape(md)
+    html = markdown.markdown(md, safe_mode='escape')
     tpl = jinja2.Template(tpltext)
     
     if not args.title:
@@ -48,13 +51,14 @@ if __name__ == '__main__':
         title = args.title
 
     output = tpl.render(html=html, title=title)
-    
+    output = output.encode('ascii', 'xmlcharrefreplace')
+
     if args.output:
         outfile = args.output
     else:
         outfile =  '.'.join(args.markdown.split('.')[0:-1]) + ".html"
 
 
-    out = open(outfile, 'w')
+    out = codecs.open(outfile, 'w', 'UTF-8')
     out.write(output)
     out.close
